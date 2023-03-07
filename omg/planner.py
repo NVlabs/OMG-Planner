@@ -12,6 +12,7 @@ from . import config
 import time
 import torch
 import multiprocessing
+import joblib
 
 
 def solve_one_pose_ik(input):
@@ -92,7 +93,7 @@ class Planner(object):
     Tricks such as standoff pregrasp, flip grasps are for real world experiments.
     """
 
-    def __init__(self, env, traj, lazy=False):
+    def __init__(self, env, traj, lazy=False, scene_idx=None):
 
         self.cfg = config.cfg  # env.config
         self.env = env
@@ -101,12 +102,15 @@ class Planner(object):
         self.optim = Optimizer(env, self.cost)
         self.lazy = lazy
 
+        if hasattr(self.cfg, "valid_grasp_dict_path"):
+            self.valid_grasp_dict = joblib.load(self.cfg.valid_grasp_dict_path)
+
         if self.cfg.goal_set_proj:
             if hasattr(self.cfg, 'use_external_grasp') and self.cfg.use_external_grasp:
                 self.load_goal_from_external(self.cfg.external_grasps)
 
             if self.cfg.scene_file == "" or self.cfg.traj_init == "grasp":
-                self.load_grasp_set(env)
+                self.load_grasp_set(env, scene_idx)
                 self.setup_goal_set(env)
             else:
                 self.load_goal_from_scene()
@@ -120,7 +124,7 @@ class Planner(object):
         self.ik_cache = []
 
     # update planner based on the env
-    def update(self, env, traj):
+    def update(self, env, traj, scene_idx=None):
         self.cfg = config.cfg
         self.env = env
         self.traj = traj
@@ -139,7 +143,7 @@ class Planner(object):
             if hasattr(self.cfg, 'use_external_grasp') and self.cfg.use_external_grasp:
                 self.load_goal_from_external(self.cfg.external_grasps)
             elif self.cfg.scene_file == "" or self.cfg.traj_init == "grasp":
-                self.load_grasp_set(env)
+                self.load_grasp_set(env, scene_idx)
                 self.setup_goal_set(env)
             else:
                 self.load_goal_from_scene()
@@ -454,7 +458,7 @@ class Planner(object):
         )
         return list(reach_goal_set), list(standoff_goal_set)
 
-    def load_grasp_set(self, env):
+    def load_grasp_set(self, env, scene_idx):
         """
         Example to load precomputed grasps for YCB Objects.
         """
@@ -483,10 +487,13 @@ class Planner(object):
                                 encoding="bytes",
                             )
                             pose_grasp = simulator_grasp.item()[b"transforms"]
+                        if scene_idx is not None:
+                            pose_grasp = pose_grasp[self.valid_grasp_dict[scene_idx]]
 
                         offset_pose = np.array(rotZ(np.pi / 2))  # and
                         pose_grasp = np.matmul(pose_grasp, offset_pose)  # flip x, y
-                        pose_grasp = ycb_special_case(pose_grasp, target_obj.name)
+                        if scene_idx is None:
+                            pose_grasp = ycb_special_case(pose_grasp, target_obj.name)
                         target_obj.grasps_poses = pose_grasp
 
                     else:

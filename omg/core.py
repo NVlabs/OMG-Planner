@@ -473,14 +473,14 @@ class PlanningScene(object):
             if config.cfg.vis:
                 self.setup_renderer()
 
-    def update_planner(self):
-        self.planner.update(self.env, self.traj)
+    def update_planner(self, scene_idx=None):
+        self.planner.update(self.env, self.traj, scene_idx=scene_idx)
 
-    def reset(self, lazy=False):
+    def reset(self, lazy=False, scene_idx=None):
         """
         Reset the scene for next run
         """
-        self.planner = Planner(self.env, self.traj, lazy)
+        self.planner = Planner(self.env, self.traj, lazy, scene_idx=scene_idx)
         if config.cfg.vis and not hasattr(self, "renderer"):
             self.setup_renderer()
 

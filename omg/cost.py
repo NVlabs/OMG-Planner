@@ -86,7 +86,7 @@ class Cost(object):
         vis_pts[..., 7] = 255 - vis_pts[..., 6]
         if type(collide) is torch.Tensor:
             collide = collide.detach().cpu().numpy()
-        collide = collide.astype(np.bool)
+        collide = collide.astype(bool)
         vis_pts[collide, 6:9] = 255, 0, 0
 
     def compute_point_jacobian(

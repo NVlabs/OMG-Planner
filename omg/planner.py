@@ -487,13 +487,12 @@ class Planner(object):
                                 encoding="bytes",
                             )
                             pose_grasp = simulator_grasp.item()[b"transforms"]
-                        if scene_idx is not None:
+                        if hasattr(self, "valid_grasp_dict"):
                             pose_grasp = pose_grasp[self.valid_grasp_dict[scene_idx]]
 
                         offset_pose = np.array(rotZ(np.pi / 2))  # and
                         pose_grasp = np.matmul(pose_grasp, offset_pose)  # flip x, y
-                        if scene_idx is None:
-                            pose_grasp = ycb_special_case(pose_grasp, target_obj.name)
+                        pose_grasp = ycb_special_case(pose_grasp, target_obj.name)
                         target_obj.grasps_poses = pose_grasp
 
                     else:
